@@ -52,6 +52,22 @@ struct ContentView: View {
         // 3. Finally, ignore the safe area to push the background into the title bar
         .ignoresSafeArea(.all)
 
+        // 4. Configure window for macOS Tahoe Liquid Glass styling
+        .background(WindowAccessor { window in
+            window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
+            window.titleVisibility = .hidden
+            window.titlebarAppearsTransparent = true
+            window.backgroundColor = .clear
+
+            // Hidden toolbar enables modern window geometry
+            window.toolbar = NSToolbar(identifier: "hiddenToolbar")
+
+            // Hide window controls
+            window.standardWindowButton(.closeButton)?.isHidden = true
+            window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+            window.standardWindowButton(.zoomButton)?.isHidden = true
+        })
+
         .onAppear {
             searchText = ""
             selectFirstItem()
@@ -467,6 +483,29 @@ class NonDraggableNSView: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? {
         // Return self to capture mouse events and prevent window dragging
         return self
+    }
+}
+
+// MARK: - Window Accessor
+// Bridges SwiftUI to AppKit for window configuration (macOS Tahoe Liquid Glass)
+
+struct WindowAccessor: NSViewRepresentable {
+    let config: (NSWindow) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        view.wantsLayer = true
+        view.layer?.backgroundColor = .clear // Important for Tahoe glass
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        // Execute asynchronously to ensure the window is attached
+        DispatchQueue.main.async {
+            if let window = nsView.window {
+                self.config(window)
+            }
+        }
     }
 }
 
